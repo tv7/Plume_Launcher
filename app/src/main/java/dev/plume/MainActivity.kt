@@ -1224,6 +1224,7 @@ class MainActivity : Activity() {
             id = View.generateViewId()
             gravity = Gravity.CENTER
             isFocusable = true
+            layoutDirection = View.LAYOUT_DIRECTION_LTR // PIN digits read left to right in every language
             boxes.forEach { addView(it, LinearLayout.LayoutParams(dp(48), dp(56)).apply { marginStart = dp(6); marginEnd = dp(6) }) }
         }
         fun draw() = boxes.forEachIndexed { i, b ->
@@ -1550,7 +1551,7 @@ class MainActivity : Activity() {
             // after focus moved on is skipped, or it would show this old name while a newer tile is selected.
             val place = {
                 label.text = v.contentDescription
-                label.translationX = v.left + v.width / 2f - label.width / 2f
+                label.translationX = v.left + v.width / 2f - label.left - label.width / 2f
             }
             if (v.width > 0 && label.width > 0) place() else v.post { if (v.isFocused) place() }
             label.animate().alpha(if (dark) 0.85f else 1f).setDuration(160).start()
@@ -1708,7 +1709,7 @@ class MainActivity : Activity() {
             (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT || e.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)
         ) {
             @Suppress("UNCHECKED_CAST")
-            if (e.action == KeyEvent.ACTION_DOWN) (currentFocus?.tag as? (Int) -> Unit)?.invoke(if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1)
+            if (e.action == KeyEvent.ACTION_DOWN) (currentFocus?.tag as? (Int) -> Unit)?.invoke(if (e.keyCode == keyBack) -1 else 1)
             return true
         }
         if (editing && editKey(e, confirm)) return true
@@ -1734,15 +1735,15 @@ class MainActivity : Activity() {
             v.parent === wifi.parent -> when (key) { // top bar
                 KeyEvent.KEYCODE_DPAD_DOWN -> apps ?: cards ?: v // the apps row can be empty (all hidden)
                 KeyEvent.KEYCODE_DPAD_UP -> v
-                KeyEvent.KEYCODE_DPAD_LEFT -> if (v.id == R.id.wifi) v else null
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (v.id == R.id.launcherSettings) v else null
+                keyBack -> if (v.id == R.id.wifi) v else null
+                keyForward -> if (v.id == R.id.launcherSettings) v else null
                 else -> null
             }
             v.parent === appRow -> when (key) {
                 KeyEvent.KEYCODE_DPAD_UP -> top
                 KeyEvent.KEYCODE_DPAD_DOWN -> cards ?: v
-                KeyEvent.KEYCODE_DPAD_LEFT -> if (appRow.indexOfChild(v) == 0) v else null
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (appRow.indexOfChild(v) == appRow.childCount - 1) v else null
+                keyBack -> if (appRow.indexOfChild(v) == 0) v else null
+                keyForward -> if (appRow.indexOfChild(v) == appRow.childCount - 1) v else null
                 else -> null
             }
             v.getTag(R.id.watchRow) is Prog -> {
@@ -1750,8 +1751,8 @@ class MainActivity : Activity() {
                 when (key) {
                     KeyEvent.KEYCODE_DPAD_UP -> apps ?: top
                     KeyEvent.KEYCODE_DPAD_DOWN -> v
-                    KeyEvent.KEYCODE_DPAD_LEFT -> if (i == 0) v else null
-                    KeyEvent.KEYCODE_DPAD_RIGHT -> if (i == watchRow.childCount - 1) v else null
+                    keyBack -> if (i == 0) v else null
+                    keyForward -> if (i == watchRow.childCount - 1) v else null
                     else -> null
                 }
             }
@@ -1907,7 +1908,7 @@ class MainActivity : Activity() {
         when (e.keyCode) {
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> return true
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                val j = if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) i - 1 else i + 1
+                val j = if (e.keyCode == keyBack) i - 1 else i + 1
                 if (j !in 0 until appTileCount()) return true
                 if (grabbed === v) {
                     // Swap layout params too, so the first tile keeps no leading margin.
@@ -1975,7 +1976,8 @@ class MainActivity : Activity() {
             allAppsGrid.addView(t, GridLayout.LayoutParams().apply {
                 this.width = width
                 height = dp(76)
-                setMargins(0, 0, gap, gap)
+                marginEnd = gap
+                bottomMargin = gap
             })
         }
         allApps.visibility = View.VISIBLE
@@ -2780,14 +2782,19 @@ class MainActivity : Activity() {
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
+    /** Left/Right as steps back and forward along a row: mirrored when the TV's language reads right to left. */
+    private val keyBack get() = if (rtl()) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT
+    private val keyForward get() = if (rtl()) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
+    private fun rtl() = resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
+
     private companion object {
         const val TV_LISTINGS = "android.permission.READ_TV_LISTINGS"
         const val WRITE_SECURE = "android.permission.WRITE_SECURE_SETTINGS"
         const val ROLE_REQUEST = 2
         val ROW_ALIGN = linkedMapOf( // setting -> its name, and the row's gravity in the scroller
-            "left" to (R.string.align_left to Gravity.START),
+            "left" to (R.string.align_left to Gravity.LEFT),
             "centre" to (R.string.align_centre to Gravity.CENTER_HORIZONTAL),
-            "right" to (R.string.align_right to Gravity.END),
+            "right" to (R.string.align_right to Gravity.RIGHT),
         )
         const val BADGE = 0xFFFF453A.toInt()
         // Dark mode tokens, for AMOLED: true black, and near-black cards that read as cards because their edge

@@ -32,6 +32,7 @@
         android:label="Plume"
         android:banner="@drawable/banner"
         android:icon="@drawable/banner"
+        android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
 
