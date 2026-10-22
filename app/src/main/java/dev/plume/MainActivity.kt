@@ -2600,6 +2600,7 @@ class MainActivity : Activity() {
         // Long titles scroll while their poster is focused instead of staying cut off.
         val title = label(p.title, 14f).apply {
             setPadding(0, dp(6), 0, 0)
+            textAlignment = View.TEXT_ALIGNMENT_VIEW_START // an English title lines up with Arabic ones, and the other way round
             isSingleLine = true
             ellipsize = TextUtils.TruncateAt.MARQUEE
             marqueeRepeatLimit = -1
@@ -2631,6 +2632,7 @@ class MainActivity : Activity() {
             col.addView(label(p.sub, 12f).apply {
                 alpha = 0.8f
                 setPadding(0, dp(2), 0, 0)
+                textAlignment = View.TEXT_ALIGNMENT_VIEW_START
                 icon?.let {
                     it.setBounds(0, 0, dp(12), dp(12))
                     setCompoundDrawablesRelative(it, null, null, null)
